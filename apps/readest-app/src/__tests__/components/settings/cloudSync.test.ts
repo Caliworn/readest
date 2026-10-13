@@ -12,6 +12,7 @@ import {
 import { useSettingsStore } from '@/store/settingsStore';
 import { broadcastGlobalSettings } from '@/utils/settingsSync';
 import { CLOUD_SYNC_REQUIRES_PREMIUM, isCloudSyncAllowed, isCloudSyncInPlan } from '@/utils/access';
+import { resolveCloudSyncGate } from '@/services/sync/cloudSyncProvider';
 import type { SystemSettings } from '@/types/settings';
 import type { EnvConfigType } from '@/services/environment';
 
@@ -30,13 +31,25 @@ describe('isCloudSyncInPlan', () => {
   });
 });
 
-describe('isCloudSyncAllowed (premium paywall)', () => {
-  test('third-party cloud sync requires a paid plan', () => {
-    expect(CLOUD_SYNC_REQUIRES_PREMIUM).toBe(true);
-    expect(isCloudSyncAllowed('free', false)).toBe(false);
+describe('isCloudSyncAllowed (personal fork)', () => {
+  test('third-party cloud sync is available on every plan', () => {
+    expect(CLOUD_SYNC_REQUIRES_PREMIUM).toBe(false);
+    expect(isCloudSyncAllowed('free', false)).toBe(true);
     expect(isCloudSyncAllowed('plus', false)).toBe(true);
     expect(isCloudSyncAllowed('pro', false)).toBe(true);
-    expect(isCloudSyncAllowed('purchase', false)).toBe(false);
+    expect(isCloudSyncAllowed('purchase', false)).toBe(true);
+  });
+
+  test('a free account can run OneDrive while Readest Cloud library sync stays off', () => {
+    const settings = {
+      onedrive: { enabled: true },
+      readestCloud: { enabled: false },
+    } as SystemSettings;
+    expect(resolveCloudSyncGate(settings, 'free', false)).toEqual({
+      readest: false,
+      backends: ['onedrive'],
+      paused: false,
+    });
   });
 });
 
@@ -289,7 +302,7 @@ describe('isCloudSyncAllowed — customization unlock', () => {
     expect(isCloudSyncAllowed('purchase', true)).toBe(true);
   });
 
-  test('does not entitle a storage-only buyer after the grace period', () => {
-    expect(isCloudSyncAllowed('purchase', false)).toBe(false);
+  test('allows a storage-only buyer without a customization purchase in this fork', () => {
+    expect(isCloudSyncAllowed('purchase', false)).toBe(true);
   });
 });

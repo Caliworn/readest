@@ -425,7 +425,8 @@ fn compute_updater_disabled(
 
 #[cfg(desktop)]
 fn updater_disabled() -> bool {
-    let env_disable = std::env::var("READEST_DISABLE_UPDATER").is_ok();
+    // Personal fork: keep official updates from replacing the custom build.
+    let env_disable = true;
     #[cfg(target_os = "linux")]
     {
         let is_flatpak =
